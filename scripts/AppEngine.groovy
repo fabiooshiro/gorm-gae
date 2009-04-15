@@ -1,5 +1,5 @@
-includeTargets << grailsScript("War")
-target(cleanUpAfterWar:"override to avoid cleanup") {
+includeTargets << grailsScript("_GrailsWar")
+target(cleanUpAfterWar:"override to avoid cleanup") { 
 	// do nothing
 }
 target(main: "Runs a Grails application in the AppEngine development environment") {
