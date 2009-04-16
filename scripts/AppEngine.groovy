@@ -10,10 +10,22 @@ target(main: "Runs a Grails application in the AppEngine development environment
 	war()
 	
 	def cmd = argsMap.params ? argsMap.params[0] : 'run'
+	def debug = argsMap.debug ?: false
 	
 	switch(cmd) {
 		case 'run':
-			ant.dev_appserver(war:stagingDir); break
+			startAppEngineGeneratedThread()		
+			ant.dev_appserver(war:stagingDir) {
+				options {
+					arg value:"--jvm_flag=-D--enable_all_permissions=true"
+					if(debug) {
+						arg value:"--jvm_flag=-Xdebug"
+						arg value:"--jvm_flag=-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9999"
+					}
+				}
+			}
+		
+			break
 		case ~/(update|deploy)/:
 			ant.appcfg(action:"update", war:stagingDir); break
 		case ~/(update_indexes)/:
@@ -39,3 +51,20 @@ target(main: "Runs a Grails application in the AppEngine development environment
 }
 
 setDefaultTarget(main)
+
+// starts a thread to monitor for AppEngine generated to content
+private startAppEngineGeneratedThread() {
+	ant.mkdir(dir:"${projectWorkDir}/appengine-generated")
+	Thread.start {	
+		def localAnt = new AntBuilder()
+		while(true) {
+			if(new File("${stagingDir}/WEB-INF/appengine-generated/datastore-indexes-auto.xml").exists() && new File("${stagingDir}/WEB-INF/appengine-generated/datastore-indexes-auto.xml").text) {
+			//	println "updating AppEngine generated indices"				
+				localAnt.copy(todir:"${projectWorkDir}/appengine-generated") {
+					fileset(dir:"${stagingDir}/WEB-INF/appengine-generated") 
+				}			
+			}			
+		}
+		sleep(4000)
+	}
+}

@@ -8,3 +8,8 @@
 //
 //    ant.mkdir(dir:"${basedir}/grails-app/jobs")
 //
+
+
+ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/jdoconfig.xml")
+ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/datastore-indexes.xml")
+println "Installed JDO config to ${basedir}/grails-app/conf"
