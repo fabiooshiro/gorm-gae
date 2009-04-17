@@ -12,6 +12,7 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
     <resource>DataSource</resource>
     <resource>spring.resources</resource>
     <resource>UrlMappings</resource>
+    <resource>org.grails.appengine.AppEngineReloadController</resource>
     <resource>TestController</resource>
   </resources>
   <dependencies />

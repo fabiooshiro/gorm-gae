@@ -1,3 +1,5 @@
+import grails.util.*
+
 includeTargets << grailsScript("_GrailsWar")
 
 scriptEnv = "dev"
@@ -17,17 +19,7 @@ target(main: "Runs a Grails application in the AppEngine development environment
 	
 	switch(cmd) {
 		case 'run':
-			startAppEngineGeneratedThread()	
-			ant.dev_appserver(war:stagingDir) {
-				options {
-					arg value:"--jvm_flag=-D--enable_all_permissions=true"
-					arg value:"--jvm_flag=-Dgrails.env=${grailsEnv}"					
-					if(debug) {
-						arg value:"--jvm_flag=-Xdebug"
-						arg value:"--jvm_flag=-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9999"
-					}
-				}
-			}
+			startDevServer(debug)
 		
 			break
 		case ~/(update|deploy)/:
@@ -50,14 +42,33 @@ target(main: "Runs a Grails application in the AppEngine development environment
 			}
 		
 		break
-		default: ant.dev_appserver(war:stagingDir);
+		default: startDevServer(debug)
 	}
 }
 
 setDefaultTarget(main)
 
+private startDevServer(boolean debug) {
+	startAppEngineGeneratedThread()	
+	startAppEngineReloadThread()
+	ant.dev_appserver(war:stagingDir) {
+		options {
+			arg value:"--jvm_flag=-D--enable_all_permissions=true"
+			arg value:"--jvm_flag=-Dgrails.env=${grailsEnv}"
+			if(Environment.current == Environment.DEVELOPMENT) {
+				arg value:"--jvm_flag=-Dgrails.reload.enabled=true"						
+				arg value:"--jvm_flag=-Dgrails.reload.location=${basedir}"												
+			}					
+			if(debug) {
+				arg value:"--jvm_flag=-Xdebug"
+				arg value:"--jvm_flag=-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9999"
+			}
+		}
+	}	
+}
 // starts a thread to monitor for AppEngine generated to content
 private startAppEngineGeneratedThread() {
+	println "Starting AppEngine generated indices thread."
 	ant.mkdir(dir:"${projectWorkDir}/appengine-generated")
 	Thread.start {	
 
@@ -68,7 +79,24 @@ private startAppEngineGeneratedThread() {
 					fileset(dir:"${stagingDir}/WEB-INF/appengine-generated") 
 				}			
 			}			
+			sleep(4000)			
 		}
-		sleep(4000)
+
+	}
+}
+
+// enables reloading of the AppEngine server
+private startAppEngineReloadThread() {
+	println "Starting reload monitor thread."
+	Thread.start {
+		while(true) {
+			try {
+				new URL("http://localhost:8080/appEngineReload/index").text
+			}
+			catch(e) {
+				// ignore
+			}
+			sleep 3000
+		}
 	}
 }
