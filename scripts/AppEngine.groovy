@@ -1,4 +1,7 @@
 includeTargets << grailsScript("_GrailsWar")
+
+scriptEnv = "dev"
+
 target(cleanUpAfterWar:"override to avoid cleanup") { 
 	// do nothing
 }
@@ -14,10 +17,11 @@ target(main: "Runs a Grails application in the AppEngine development environment
 	
 	switch(cmd) {
 		case 'run':
-			startAppEngineGeneratedThread()		
+			startAppEngineGeneratedThread()	
 			ant.dev_appserver(war:stagingDir) {
 				options {
 					arg value:"--jvm_flag=-D--enable_all_permissions=true"
+					arg value:"--jvm_flag=-Dgrails.env=${grailsEnv}"					
 					if(debug) {
 						arg value:"--jvm_flag=-Xdebug"
 						arg value:"--jvm_flag=-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9999"
@@ -56,10 +60,10 @@ setDefaultTarget(main)
 private startAppEngineGeneratedThread() {
 	ant.mkdir(dir:"${projectWorkDir}/appengine-generated")
 	Thread.start {	
-		def localAnt = new AntBuilder()
+
 		while(true) {
 			if(new File("${stagingDir}/WEB-INF/appengine-generated/datastore-indexes-auto.xml").exists() && new File("${stagingDir}/WEB-INF/appengine-generated/datastore-indexes-auto.xml").text) {
-			//	println "updating AppEngine generated indices"				
+				def localAnt = new AntBuilder()							
 				localAnt.copy(todir:"${projectWorkDir}/appengine-generated") {
 					fileset(dir:"${stagingDir}/WEB-INF/appengine-generated") 
 				}			
