@@ -12,4 +12,10 @@
 
 ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/jdoconfig.xml")
 ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/datastore-indexes.xml")
+ant.mkdir(dir:"${basedir}/src/templates")
+ant.copy(todir:"${basedir}/src/templates") {
+	fileset(dir:"${appEnginePluginDir}/src/templates/jdo")
+}
+ant.mkdir(dir:"${basedir}/src/templates/war")
+ant.copy(file:"${appEnginePluginDir}/src/templates/war/web.xml",todir:"${basedir}/src/templates/war", overwrite:true) 	
 println "Installed JDO config to ${basedir}/grails-app/conf"

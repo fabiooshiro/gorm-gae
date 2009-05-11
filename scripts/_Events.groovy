@@ -10,6 +10,7 @@ eventCreateWarStart = { warLocation, stagingDir ->
 <appengine-web-app xmlns=\"http://appengine.google.com/ns/1.0\">
     <application>${appName}</application>
     <version>${appVersion}</version>
+    <sessions-enabled>true</sessions-enabled>    
 </appengine-web-app>	
 """	
 

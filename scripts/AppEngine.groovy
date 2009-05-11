@@ -12,15 +12,29 @@ target(main: "Runs a Grails application in the AppEngine development environment
 	
 	ant.'import'(file:"${appEngineSDK}/config/user/ant-macros.xml")
 	ant.delete(dir:"${grailsSettings.projectWorkDir}/staging")
-	war()
-	
+	ant.mkdir dir:"${basedir}/target"	
 	def cmd = argsMap.params ? argsMap.params[0] : 'run'
 	def debug = argsMap.debug ?: false
+	argsMap.params.clear()	
+	
+	if(!buildConfig.grails.war.destFile) {
+		buildConfig.grails.war.destFile="${basedir}/target/${grailsAppName}-${metadata.getApplicationVersion()}.war"		
+	}
+	war()
+	
 	
 	switch(cmd) {
+		case 'package':
+			def targetDir = "${basedir}/target/war"
+			ant.delete dir:targetDir
+			ant.mkdir dir:targetDir			
+			ant.copy(todir:targetDir) {
+				fileset(dir:"${grailsSettings.projectWorkDir}/stage")
+			}
+			println "Created distribution at $targetDir"
+		break
 		case 'run':
-			startDevServer(debug)
-		
+			startDevServer(debug)		
 			break
 		case ~/(update|deploy)/:
 			ant.appcfg(action:"update", war:stagingDir); break
@@ -32,7 +46,7 @@ target(main: "Runs a Grails application in the AppEngine development environment
 			def days = argsMap.days ?: 5
 			def file = argsMap.file ?: 'logs.txt'
 			
-			ant.appcfg(action:"rollback", war:stagingDir) {
+			ant.appcfg(action:"logs", war:stagingDir) {
 				options {
 					arg value:"--num_days=$days"
 				}
