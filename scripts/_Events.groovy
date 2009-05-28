@@ -27,6 +27,11 @@ eventCreateWarStart = { warLocation, stagingDir ->
 		ant.mkdir(dir:"$stagingDir/WEB-INF/classes/META-INF")
 		ant.copy(file:"${basedir}/grails-app/conf/jdoconfig.xml",todir:"$stagingDir/WEB-INF/classes/META-INF")
 	}
+	if(new File("${basedir}/grails-app/conf/persistence.xml").exists()) {
+		ant.mkdir(dir:"$stagingDir/WEB-INF/classes/META-INF")
+		ant.copy(file:"${basedir}/grails-app/conf/persistence.xml",todir:"$stagingDir/WEB-INF/classes/META-INF")
+	}
+	
 	if(new File("${basedir}/grails-app/conf/datastore-indexes.xml").exists()) {
 		ant.copy(file:"${basedir}/grails-app/conf/datastore-indexes.xml",todir:"$stagingDir/WEB-INF")
 	}

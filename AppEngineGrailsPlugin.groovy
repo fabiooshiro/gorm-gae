@@ -1,6 +1,6 @@
 class AppEngineGrailsPlugin {
     // the plugin version
-    def version = "0.7"
+    def version = "0.8"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "1.1 > *"
 	def evict = ['hibernate']
@@ -21,8 +21,13 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
     def documentation = "http://grails.org/AppEngine+Plugin"
 
 	def doWithSpring = {
-		def persistenceEngine = application.config.google.appengine.persistence ?: "jdo"
+		def persistenceEngine = application.config.google.appengine.persistence ?: null
+		if(!persistenceEngine) {
+			persistenceEngine = application.metadata['appengine.persistence'] ?: 'jdo'
+		}
+		
 		if(persistenceEngine?.equalsIgnoreCase("JDO")) {
+			log.info "Configuring JDO PersistenceManager"			
 			persistenceManagerFactory(org.springframework.beans.factory.config.MethodInvokingFactoryBean) {
 				targetClass = "javax.jdo.JDOHelper"
 				targetMethod = "getPersistenceManagerFactory"
@@ -34,6 +39,39 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 				bean.factoryBean = "persistenceManagerFactory"
 				bean.factoryMethod = "getPersistenceManager"
 				bean.destroyMethod = "close"
+			}
+			transactionManager(org.springframework.orm.jdo.JdoTransactionManager) {
+				persistenceManagerFactory = persistenceManagerFactory
+			}
+			transactionTemplate(org.springframework.transaction.support.TransactionTemplate) {
+				transactionManager = transactionManager
+			}
+			jdoTemplate(org.springframework.orm.jdo.JdoTemplate) {
+				persistenceManagerFactory = persistenceManagerFactory
+			}
+		}
+		
+		else if(persistenceEngine?.equalsIgnoreCase("JPA")) {
+			log.info "Configuring JPA EntityManager"
+			entityManagerFactory(org.springframework.beans.factory.config.MethodInvokingFactoryBean) {
+				targetClass = "javax.persistence.Persistence"
+				targetMethod = "createEntityManagerFactory"
+				arguments = ["transactions-optional"]				
+			}
+			transactionManager(org.springframework.orm.jpa.JpaTransactionManager) {
+				entityManagerFactory = entityManagerFactory
+			}
+			transactionTemplate(org.springframework.transaction.support.TransactionTemplate) {
+				transactionManager = transactionManager
+			}			
+			jpaTemplate(org.springframework.orm.jpa.JpaTemplate) {
+				entityManagerFactory = entityManagerFactory
+			}
+			entityManager(getClass().classLoader.loadClass('javax.persistence.EntityManager')) { bean ->
+				bean.scope = "request"
+				bean.factoryBean = "entityManagerFactory"
+				bean.factoryMethod = "createEntityManager"
+				bean.destroyMethod = "close"				
 			}
 		}
 	}
