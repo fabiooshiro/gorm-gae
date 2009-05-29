@@ -48,6 +48,7 @@ eventCreateWarStart = { warLocation, stagingDir ->
 }
 
 eventSetClasspath = {
+	
 	classpathSet = false
 	
 	def appEngineJars = ant.fileScanner {
@@ -60,4 +61,8 @@ eventSetClasspath = {
 	grailsSettings.runtimeDependencies.addAll appEngineJars	
 	grailsSettings.testDependencies.addAll appEngineJars	
 	classpath()
+}
+eventRunAppStart = {
+	println "The command 'grails run-app' is not supported with AppEngine. Use 'grails app-engine' to start the application"
+	exit(1)
 }
