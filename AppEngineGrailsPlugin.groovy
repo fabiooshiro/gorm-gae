@@ -1,6 +1,6 @@
 class AppEngineGrailsPlugin {
     // the plugin version
-    def version = "0.8"
+    def version = "0.8.1"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "1.1 > *"
 	def evict = ['hibernate']
