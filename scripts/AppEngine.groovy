@@ -13,7 +13,7 @@ target(main: "Runs a Grails application in the AppEngine development environment
 	ant.'import'(file:"${appEngineSDK}/config/user/ant-macros.xml")
 	ant.delete(dir:"${grailsSettings.projectWorkDir}/staging")
 	ant.mkdir dir:"${basedir}/target"	
-	def cmd = argsMap.params ? argsMap.params[0] : 'run'
+	def cmd = argsMap.params ? argsMap.params[0] : 'run'	
 	def debug = argsMap.debug ?: false
 	argsMap.params.clear()	
 	
@@ -43,19 +43,8 @@ target(main: "Runs a Grails application in the AppEngine development environment
 			break			
 		case 'rollback':
 			appcfg("rollback", stagingDir); break		
-		case 'logs':
-			def days = argsMap.days ?: 5
-			def file = argsMap.file ?: 'logs.txt'
-			
-			appcfg("logs", stagingDir) {
-				options {
-					arg value:"--num_days=$days"
-				}
-				args {
-					arg value:file
-				}
-			}
-		
+		case 'logs':			
+			appcfg("logs", stagingDir); break
 		break
 		default: startDevServer(debug)
 	}
@@ -64,18 +53,18 @@ target(main: "Runs a Grails application in the AppEngine development environment
 // calls the jar file directly instead of using google's macro
 private appcfg( action, war ){
 	
-	def read = System.in.newReader().&readLine 
+	//def read = System.in.newReader().&readLine 
 	def email = config.google.appengine.email
 	def password = config.google.appengine.password
 
 	if( !email ){
-		println "Enter your Google App Engine email address:"
-		email = read()
+		ant.input(message:"Enter your Google App Engine email address", addproperty:"appengine.email")
+		email = ant.antProject.properties['appengine.email']
 	}
 
 	if(!password){
-		println "Enter your Google App Engine password:"
-		password = read() // System.console.password?
+		ant.input(message:"Enter your Google App Engine password", addproperty:"appengine.password")
+		password = ant.antProject.properties['appengine.password']
 	}
 	
 	// this is essentially what's in the app engine macro, except it takes in a pw + email 
@@ -89,8 +78,21 @@ private appcfg( action, war ){
 	){
 		arg(value:"--email=${email}");
 		arg(value:"--passin");
-		arg(value:action);
-		arg(value:war)
+
+		if(action=="logs") {
+			def days = argsMap.days ?: 5
+			def file = argsMap.file ?: 'logs.txt'		
+			
+			arg value:"--num_days=$days"			
+			arg value:"request_logs"
+			arg value:war				
+			arg value:file						
+		}
+		else {
+			arg(value:action)
+			arg(value:war)			
+		}
+
 	}
 	
 }
