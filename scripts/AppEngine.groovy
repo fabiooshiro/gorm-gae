@@ -22,7 +22,6 @@ target(main: "Runs a Grails application in the AppEngine development environment
 	}
 	war()
 	
-	
 	switch(cmd) {
 		case 'package':
 			def targetDir = "${basedir}/target/war"
@@ -37,16 +36,18 @@ target(main: "Runs a Grails application in the AppEngine development environment
 			startDevServer(debug)		
 			break
 		case ~/(update|deploy)/:
-			ant.appcfg(action:"update", war:stagingDir); break
+			appcfg("update", stagingDir); 
+			break
 		case ~/(update_indexes)/:
-			ant.appcfg(action:"update_indexes", war:stagingDir); break			
+			appcfg("update_indexes", stagingDir); 
+			break			
 		case 'rollback':
-			ant.appcfg(action:"rollback", war:stagingDir); break		
+			appcfg("rollback", stagingDir); break		
 		case 'logs':
 			def days = argsMap.days ?: 5
 			def file = argsMap.file ?: 'logs.txt'
 			
-			ant.appcfg(action:"logs", war:stagingDir) {
+			appcfg("logs", stagingDir) {
 				options {
 					arg value:"--num_days=$days"
 				}
@@ -58,6 +59,40 @@ target(main: "Runs a Grails application in the AppEngine development environment
 		break
 		default: startDevServer(debug)
 	}
+}
+
+// calls the jar file directly instead of using google's macro
+private appcfg( action, war ){
+	
+	def read = System.in.newReader().&readLine 
+	def email = config.google.appengine.email
+	def password = config.google.appengine.password
+
+	if( !email ){
+		println "Enter your Google App Engine email address:"
+		email = read()
+	}
+
+	if(!password){
+		println "Enter your Google App Engine password:"
+		password = read() // System.console.password?
+	}
+	
+	// this is essentially what's in the app engine macro, except it takes in a pw + email 
+	ant.property( name:"appengine.sdk.home", location: "${appEngineSDK}")
+	
+	ant.java(
+		classname:"com.google.appengine.tools.admin.AppCfg",
+		classpath:"${appEngineSDK}/lib/appengine-tools-api.jar",
+		fork:true,
+		inputstring: password+'\n'
+	){
+		arg(value:"--email=${email}");
+		arg(value:"--passin");
+		arg(value:action);
+		arg(value:war)
+	}
+	
 }
 
 setDefaultTarget(main)
