@@ -4,13 +4,16 @@ eventCreateWarStart = { warLocation, stagingDir ->
 	def appVersion = metadata.'app.version'
 	def appName = config.google.appengine.application ?: grailsAppName
 
+	def enableSessions = config.google.appengine.sessionEnabled?:true
+	def enableSsl = config.google.appengine.enableSsl?:true
 	
 	println "Generating appengine-web.xml file for application [$appName]"	
 	new File("$stagingDir/WEB-INF/appengine-web.xml").write """<?xml version=\"1.0\" encoding=\"utf-8\"?>
 <appengine-web-app xmlns=\"http://appengine.google.com/ns/1.0\">
     <application>${appName}</application>
     <version>${appVersion}</version>
-    <sessions-enabled>true</sessions-enabled>    
+    <sessions-enabled>${enableSessions}</sessions-enabled>
+    <ssl-enabled>${enableSsl}</ssl-enabled>
 </appengine-web-app>	
 """	
 

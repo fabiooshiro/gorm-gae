@@ -1,6 +1,8 @@
+import org.codehaus.groovy.grails.commons.ConfigurationHolder
+
 class AppEngineGrailsPlugin {
     // the plugin version
-    def version = "0.8.1"
+    def version = "0.8.2"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "1.1 > *"
 	def evict = ['hibernate']
@@ -34,11 +36,11 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 				arguments = ["transactions-optional"]
 			}
 			
-			persistenceManager(getClass().classLoader.loadClass('javax.jdo.PersistenceManager')) { bean ->
+			persistenceManager(org.springframework.beans.factory.config.MethodInvokingFactoryBean) { bean ->
 				bean.scope = "request"
-				bean.factoryBean = "persistenceManagerFactory"
-				bean.factoryMethod = "getPersistenceManager"
-				bean.destroyMethod = "close"
+				targetClass = "org.springframework.orm.jdo.PersistenceManagerFactoryUtils"
+				targetMethod = "getPersistenceManager"
+				arguments = [persistenceManagerFactory,false]				
 			}
 			transactionManager(org.springframework.orm.jdo.JdoTransactionManager) {
 				persistenceManagerFactory = persistenceManagerFactory
@@ -49,6 +51,15 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 			jdoTemplate(org.springframework.orm.jdo.JdoTemplate) {
 				persistenceManagerFactory = persistenceManagerFactory
 			}
+            if (manager?.hasGrailsPlugin("controllers")) {
+                openPersistenceManagerInViewInterceptor(org.springframework.orm.jdo.support.OpenPersistenceManagerInViewInterceptor) {
+                    persistenceManagerFactory = persistenceManagerFactory
+                }
+                if(getSpringConfig().containsBean("grailsUrlHandlerMapping")) {                    
+                    grailsUrlHandlerMapping.interceptors << openPersistenceManagerInViewInterceptor
+                }
+            }
+			
 		}
 		
 		else if(persistenceEngine?.equalsIgnoreCase("JPA")) {
@@ -67,13 +78,74 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 			jpaTemplate(org.springframework.orm.jpa.JpaTemplate) {
 				entityManagerFactory = entityManagerFactory
 			}
+			entityManager(org.springframework.beans.factory.config.MethodInvokingFactoryBean) { bean ->
+				bean.scope = "request"
+				targetClass = "org.springframework.orm.jpa.EntityManagerFactoryUtils"
+				targetMethod = "getTransactionalEntityManager"
+				arguments = [entityManagerFactory]				
+			}			
 			entityManager(getClass().classLoader.loadClass('javax.persistence.EntityManager')) { bean ->
 				bean.scope = "request"
 				bean.factoryBean = "entityManagerFactory"
 				bean.factoryMethod = "createEntityManager"
 				bean.destroyMethod = "close"				
 			}
+            if (manager?.hasGrailsPlugin("controllers")) {
+                openEntityManagerInViewInterceptor(org.springframework.orm.jpa.support.OpenEntityManagerInViewInterceptor) {
+                    entityManagerFactory = entityManagerFactory
+                }
+                if(getSpringConfig().containsBean("grailsUrlHandlerMapping")) {                    
+                    grailsUrlHandlerMapping.interceptors << openEntityManagerInViewInterceptor
+                }
+            }
+			
 		}
 	}
 
+	def doWithWebDescriptor = { webXml ->
+  	   def mappingElement = webXml.'servlet-mapping'	
+	   def config = ConfigurationHolder.config
+	   def patterns = [] 
+	   def requireLoginMap = []
+	   def requireAdminMap = []
+	   def secureMap = []
+	
+ 	   if( config.google.appengine.security.requireLogin ){
+	 	  patterns += config.google.appengine.security.requireLogin
+	      requireLoginMap +=  config.google.appengine.security.requireLogin 
+	   }
+ 	   if( config.google.appengine.security.requireAdmin ){
+	 	  patterns += config.google.appengine.security.requireAdmin
+	  	  requireAdminMap += config.google.appengine.security.requireAdmin
+	   }
+	
+	   if( config.google.appengine.security.useHttps ){
+	  	  patterns += config.google.appengine.security.useHttps
+	      secureMap +=  config.google.appengine.security.useHttps
+       }
+
+	   patterns.each { pattern -> 
+		  def isAdmin = requireAdminMap.contains( pattern )
+		  def isBasic = requireLoginMap.contains( pattern ) 
+		  def isSecure = secureMap.contains( pattern )
+
+	      mappingElement[0] + {
+		  'security-constraint' {
+			'web-resource-collection'{
+				'url-pattern'( pattern as String )
+			}
+			if( isAdmin || isBasic ){
+				'auth-constraint'{
+					'role-name'( isAdmin ? "admin" : "*" )
+				}				
+			}
+			if( isSecure ){
+				'user-data-constraint'{
+					'transport-guarantee'("CONFIDENTIAL")
+				}
+			}
+	      }
+	   }
+	}
+  }
 }

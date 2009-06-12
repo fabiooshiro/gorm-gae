@@ -4,7 +4,7 @@ import javax.persistence.*;
 // import com.google.appengine.api.datastore.Key;
 
 @Entity
-class @artifact.name@ {
+class @artifact.name@ implements Serializable {
 
     @Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
