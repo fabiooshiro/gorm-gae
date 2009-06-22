@@ -20,7 +20,7 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 '''
 
     // URL to the plugin's documentation
-    def documentation = "http://grails.org/AppEngine+Plugin"
+    def documentation = "http://grails.org/plugin/app-engine"
 
 	def doWithSpring = {
 		def persistenceEngine = application.config.google.appengine.persistence ?: null
