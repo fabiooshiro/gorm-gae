@@ -20,6 +20,9 @@ target(main: "Runs a Grails application in the AppEngine development environment
 	if(!buildConfig.grails.war.destFile) {
 		buildConfig.grails.war.destFile="${basedir}/target/${grailsAppName}-${metadata.getApplicationVersion()}.war"		
 	}
+	if(cmd!='run')
+		grailsEnv = Environment.PRODUCTION.name
+		
 	war()
 	
 	switch(cmd) {
@@ -104,7 +107,10 @@ private startDevServer(boolean debug) {
 	startAppEngineReloadThread()
 	ant.dev_appserver(war:stagingDir) {
 		options {
-			arg value:"--jvm_flag=-D--enable_all_permissions=true"
+			if(Environment.current == Environment.DEVELOPMENT) {
+				arg value:"--jvm_flag=-D--enable_all_permissions=true"				
+			}
+
 			arg value:"--jvm_flag=-Dgrails.env=${grailsEnv}"
 			if(Environment.current == Environment.DEVELOPMENT) {
 				arg value:"--jvm_flag=-Dgrails.reload.enabled=true"						
@@ -119,20 +125,23 @@ private startDevServer(boolean debug) {
 }
 // starts a thread to monitor for AppEngine generated to content
 private startAppEngineGeneratedThread() {
-	println "Starting AppEngine generated indices thread."
-	ant.mkdir(dir:"${projectWorkDir}/appengine-generated")
-	Thread.start {	
+	if(Environment.current == Environment.DEVELOPMENT) {
+		println "Starting AppEngine generated indices thread."
+		ant.mkdir(dir:"${projectWorkDir}/appengine-generated")
+		Thread.start {	
 
-		while(true) {
-			if(new File("${stagingDir}/WEB-INF/appengine-generated/datastore-indexes-auto.xml").exists() && new File("${stagingDir}/WEB-INF/appengine-generated/datastore-indexes-auto.xml").text) {
-				def localAnt = new AntBuilder()							
-				localAnt.copy(todir:"${projectWorkDir}/appengine-generated") {
-					fileset(dir:"${stagingDir}/WEB-INF/appengine-generated") 
+			while(true) {
+				if(new File("${stagingDir}/WEB-INF/appengine-generated/datastore-indexes-auto.xml").exists() && new File("${stagingDir}/WEB-INF/appengine-generated/datastore-indexes-auto.xml").text) {
+					def localAnt = new AntBuilder()							
+					localAnt.copy(todir:"${projectWorkDir}/appengine-generated") {
+						fileset(dir:"${stagingDir}/WEB-INF/appengine-generated") 
+					}			
 				}			
-			}			
-			sleep(4000)			
-		}
+				sleep(4000)			
+			}
 
+		}
+		
 	}
 }
 

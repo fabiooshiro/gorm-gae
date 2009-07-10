@@ -2,10 +2,11 @@ import org.codehaus.groovy.grails.commons.ConfigurationHolder
 
 class AppEngineGrailsPlugin {
     // the plugin version
-    def version = "0.8.2"
+    def version = "0.8.3"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "1.1 > *"
 	def evict = ['hibernate']
+	def loadAfter = ['gorm-jpa']
     // resources that are excluded from plugin packaging
     def pluginExcludes = [
             "grails-app/views/error.gsp",
@@ -64,6 +65,9 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 		
 		else if(persistenceEngine?.equalsIgnoreCase("JPA")) {
 			log.info "Configuring JPA EntityManager"
+			// need to replace this bean because the default implementation relies on JNDI
+		    "org.springframework.context.annotation.internalPersistenceAnnotationProcessor"(DummyPersistenceContextPostProcessor)
+		    
 			entityManagerFactory(org.springframework.beans.factory.config.MethodInvokingFactoryBean) {
 				targetClass = "javax.persistence.Persistence"
 				targetMethod = "createEntityManagerFactory"
@@ -84,12 +88,6 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 				targetMethod = "getTransactionalEntityManager"
 				arguments = [entityManagerFactory]				
 			}			
-			entityManager(getClass().classLoader.loadClass('javax.persistence.EntityManager')) { bean ->
-				bean.scope = "request"
-				bean.factoryBean = "entityManagerFactory"
-				bean.factoryMethod = "createEntityManager"
-				bean.destroyMethod = "close"				
-			}
             if (manager?.hasGrailsPlugin("controllers")) {
                 openEntityManagerInViewInterceptor(org.springframework.orm.jpa.support.OpenEntityManagerInViewInterceptor) {
                     entityManagerFactory = entityManagerFactory
@@ -149,3 +147,4 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 	}
   }
 }
+class DummyPersistenceContextPostProcessor {}

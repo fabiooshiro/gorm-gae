@@ -14,6 +14,10 @@ eventCreateWarStart = { warLocation, stagingDir ->
     <version>${appVersion}</version>
     <sessions-enabled>${enableSessions}</sessions-enabled>
     <ssl-enabled>${enableSsl}</ssl-enabled>
+	<system-properties>
+	        <property name=\"appengine.orm.disable.duplicate.emf.exception\" value=\"true\" />
+    </system-properties>
+
 </appengine-web-app>	
 """	
 
