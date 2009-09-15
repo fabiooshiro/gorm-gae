@@ -2,7 +2,7 @@ import org.codehaus.groovy.grails.commons.ConfigurationHolder
 
 class AppEngineGrailsPlugin {
     // the plugin version
-    def version = "0.8.3"
+    def version = "0.8.4"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "1.1 > *"
 	def evict = ['hibernate']
@@ -30,18 +30,17 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 		}
 		
 		if(persistenceEngine?.equalsIgnoreCase("JDO")) {
-			log.info "Configuring JDO PersistenceManager"			
-			persistenceManagerFactory(org.springframework.beans.factory.config.MethodInvokingFactoryBean) {
-				targetClass = "javax.jdo.JDOHelper"
-				targetMethod = "getPersistenceManagerFactory"
-				arguments = ["transactions-optional"]
+			log.info "Configuring JDO PersistenceManager"
+			
+			persistenceManagerFactory(org.grails.appengine.AppEnginePersistenceManagerFactory) { bean ->
+	    		bean.factoryMethod = "get"
 			}
 			
 			persistenceManager(org.springframework.beans.factory.config.MethodInvokingFactoryBean) { bean ->
 				bean.scope = "request"
 				targetClass = "org.springframework.orm.jdo.PersistenceManagerFactoryUtils"
 				targetMethod = "getPersistenceManager"
-				arguments = [persistenceManagerFactory,false]				
+				arguments = [persistenceManagerFactory,false]
 			}
 			transactionManager(org.springframework.orm.jdo.JdoTransactionManager) {
 				persistenceManagerFactory = persistenceManagerFactory
@@ -68,10 +67,8 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 			// need to replace this bean because the default implementation relies on JNDI
 		    "org.springframework.context.annotation.internalPersistenceAnnotationProcessor"(DummyPersistenceContextPostProcessor)
 		    
-			entityManagerFactory(org.springframework.beans.factory.config.MethodInvokingFactoryBean) {
-				targetClass = "javax.persistence.Persistence"
-				targetMethod = "createEntityManagerFactory"
-				arguments = ["transactions-optional"]				
+			entityManagerFactory(org.grails.appengine.AppEngineEntityManagerFactory) { bean ->
+	    		bean.factoryMethod = "get"
 			}
 			transactionManager(org.springframework.orm.jpa.JpaTransactionManager) {
 				entityManagerFactory = entityManagerFactory
