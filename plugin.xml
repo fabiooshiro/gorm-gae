@@ -11,5 +11,4 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
     <resource>org.grails.appengine.AppEngineReloadController</resource>
   </resources>
   <dependencies />
-  <behavior />
 </plugin>
