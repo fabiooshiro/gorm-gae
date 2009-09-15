@@ -95,8 +95,30 @@ eventTestSuiteStart = { String type ->
 	    for (jar in appEngineJarsNeededAtUnitTesting) {
         	rootLoader?.addURL( jar )
 	    }
+	    
+	    println "Enhancing classes"
+	    ant.'import'(file:"${appEngineSDK}/config/user/ant-macros.xml")
+	    	            	    
+        try {
+            ant.copy(todir:"${basedir}/web-app/META-INF", file:"${basedir}/grails-app/conf/persistence.xml")
+	        def appengineEnhancers = ant.path {
+		        fileset(dir:"${appEngineSDK}/lib") {
+	                include(name:"tools/**/*.jar")
+			        include(name:"*.jar")
+	            }
+	            pathelement(location:"${basedir}/web-app/")
+	        }
+            ant.enhance(
+                failonerror:true,
+                classpath:appengineEnhancers,
+                persistenceUnit:"transactions-optional",
+                dir:"${projectWorkDir}/classes")
+        } finally {
+            ant.delete(file:"${projectWorkDir}/classes/persistence.xml")
+        }
     }
 }
+
 
 eventRunAppStart = {
 	println "The command 'grails run-app' is not supported with AppEngine. Use 'grails app-engine' to start the application"
