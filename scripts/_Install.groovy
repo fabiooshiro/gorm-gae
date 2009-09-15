@@ -9,11 +9,10 @@
 //    ant.mkdir(dir:"${basedir}/grails-app/jobs")
 //
 
-
-
 ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/datastore-indexes.xml")
 ant.mkdir(dir:"${basedir}/src/templates")
-
+ant.mkdir(dir:"${basedir}/src/groovy/org/grails/appengine")
+ant.mkdir(dir:"${basedir}/test/unit/org/grails/appengine/")
 
 uninstallPluginForName "hibernate"
 persistenceProvider = "jdo"
@@ -22,18 +21,43 @@ if(isInteractive) {
 	persistenceProvider = ant.antProject.properties["persistence.provider"]
 }
 
+ant.copy(
+    todir:"${basedir}/test/unit/org/grails/appengine/",
+    file:"${appEnginePluginDir}/src/templates/test/org/grails/appengine/AppEngineTestEnvironment.groovy",
+    overwrite:true)
+
 if(persistenceProvider == 'jdo') {
 	ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/jdoconfig.xml")
+	ant.copy(
+	    todir:"${basedir}/src/groovy/org/grails/appengine",
+	    file:"${appEnginePluginDir}/src/templates/src/groovy/org/grails/appengine/AppEnginePersistenceManagerFactory.groovy",
+	    overwrite:true)
+	ant.copy(
+	    tofile:"${basedir}/test/unit/org/grails/appengine/AppEngineGrailsUnitTestCase.groovy",
+	    file:"${appEnginePluginDir}/src/templates/test/org/grails/appengine/AppEngineGrailsUnitTestCaseForJdo.groovy",
+	    overwrite:true)
+    ant.copy(
+        todir:"${basedir}/test/unit/org/grails/appengine/",
+        file:"${appEnginePluginDir}/src/templates/test/org/grails/appengine/AppEnginePersistenceManagerFactoryForTest.groovy",
+        overwrite:true)
+
 }
 else if(persistenceProvider == 'jpa') {
-	ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/persistence.xml")	
+	ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/persistence.xml")
+	ant.copy(
+	    todir:"${basedir}/src/groovy/org/grails/appengine",
+	    file:"${appEnginePluginDir}/src/templates/src/groovy/org/grails/appengine/AppEngineEntityManagerFactory.groovy",
+	    overwrite:true)
 }
+
+
 metadata['appengine.persistence'] = persistenceProvider
 metadata.persist()
 ant.copy(todir:"${basedir}/src/templates") {
 	fileset(dir:"${appEnginePluginDir}/src/templates/$persistenceProvider")
 }
+
 ant.mkdir(dir:"${basedir}/src/templates/war")
 ant.copy(file:"${appEnginePluginDir}/src/templates/war/web.xml",todir:"${basedir}/src/templates/war", overwrite:true) 	
-println "Installed JDO config to ${basedir}/grails-app/conf"
+println "Installed [$persistenceProvider] config to ${basedir}/grails-app/conf"
 
