@@ -15,7 +15,9 @@ eventCreateWarStart = { warLocation, stagingDir ->
     <sessions-enabled>${enableSessions}</sessions-enabled>
     <ssl-enabled>${enableSsl}</ssl-enabled>
 	<system-properties>
+	    <!-- this property should be necessary. it avoids the report of an abnormal and unexpected situation!
 	        <property name=\"appengine.orm.disable.duplicate.emf.exception\" value=\"true\" />
+	     -->
     </system-properties>
 
 </appengine-web-app>	
@@ -55,20 +57,47 @@ eventCreateWarStart = { warLocation, stagingDir ->
 }
 
 eventSetClasspath = {
-	
 	classpathSet = false
 	
-	def appEngineJars = ant.fileScanner {
+	def devAppEngineJars = ant.fileScanner {
 		fileset(dir:"${appEngineSDK}/lib") {
 			include(name:"user/**/*.jar")
 		}
 	}.collect { it }
 	
-	grailsSettings.compileDependencies.addAll appEngineJars
-	grailsSettings.runtimeDependencies.addAll appEngineJars	
-	grailsSettings.testDependencies.addAll appEngineJars	
+	grailsSettings.compileDependencies.addAll devAppEngineJars
+	grailsSettings.runtimeDependencies.addAll devAppEngineJars	
+	grailsSettings.testDependencies.addAll devAppEngineJars
+	
+    // needed to unit tests appengine related classes without adding files to lib dir
+	def testAppEngineJars = ant.fileScanner {
+	    fileset(dir:"${appEngineSDK}/lib") {
+	        include(name:"impl/appengine-local-runtime.jar")
+	    }
+	}.collect { it }
+	grailsSettings.testDependencies.addAll testAppEngineJars
+
 	classpath()
 }
+
+eventTestSuiteStart = { String type ->    
+    if (type.equalsIgnoreCase("unit")) {
+        
+        // as grails change the classloader between compile and run phases
+        // we need to manually add the app engine jars to the class loader.
+	    def appEngineJarsNeededAtUnitTesting = ant.fileScanner {
+		    fileset(dir:"${appEngineSDK}/lib") {
+			    include(name:"user/**/*.jar")
+	            include(name:"impl/appengine-local-runtime.jar")
+	        }
+	    }.collect { it.toURL() }
+
+	    for (jar in appEngineJarsNeededAtUnitTesting) {
+        	rootLoader?.addURL( jar )
+	    }
+    }
+}
+
 eventRunAppStart = {
 	println "The command 'grails run-app' is not supported with AppEngine. Use 'grails app-engine' to start the application"
 	exit(1)
