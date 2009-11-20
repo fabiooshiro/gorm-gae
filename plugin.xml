@@ -1,4 +1,4 @@
-<plugin name='app-engine' version='0.8.5' grailsVersion='1.1 &gt; *'>
+<plugin name='app-engine' version='0.8.6' grailsVersion='1.1 &gt; *'>
   <author>Graeme Rocher</author>
   <authorEmail>graeme.rocher@springsource.com</authorEmail>
   <title>Grails AppEngine plugin</title>
@@ -7,8 +7,13 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 </description>
   <documentation>http://grails.org/plugin/app-engine</documentation>
   <resources>
+    <resource>BuildConfig</resource>
+    <resource>UrlMappings</resource>
     <resource>TestController</resource>
     <resource>org.grails.appengine.AppEngineReloadController</resource>
   </resources>
-  <dependencies />
+  <dependencies>
+    <resolvers />
+  </dependencies>
+  <behavior />
 </plugin>

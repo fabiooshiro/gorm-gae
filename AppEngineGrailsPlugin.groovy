@@ -1,8 +1,12 @@
 import org.codehaus.groovy.grails.commons.ConfigurationHolder
+import org.codehaus.groovy.grails.web.pages.GroovyPageResourceLoader
+import grails.util.Environment
+import org.springframework.context.ApplicationContext
+import org.springframework.core.io.FileSystemResource
 
 class AppEngineGrailsPlugin {
     // the plugin version
-    def version = "0.8.5"
+    def version = "0.8.6"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "1.1 > *"
 	def evict = ['hibernate']
@@ -26,7 +30,7 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 	def doWithSpring = {
 		def persistenceEngine = application.config.google.appengine.persistence ?: null
 		if(!persistenceEngine) {
-			persistenceEngine = application.metadata['appengine.persistence'] ?: 'jdo'
+			persistenceEngine = application.metadata['appengine.persistence'] ?: null
 		}
 		
 		if(persistenceEngine?.equalsIgnoreCase("JDO")) {
@@ -96,6 +100,18 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 			
 		}
 	}
+
+    def doWithApplicationContext = { ApplicationContext ctx ->
+        if(Environment.current == Environment.DEVELOPMENT) {
+          if(ctx.containsBean("groovyPageResourceLoader")) {            
+            GroovyPageResourceLoader loader = ctx.getBean("groovyPageResourceLoader")
+            String path = System.getProperty("grails.reload.location")
+            if(!path.endsWith('/')) path = "$path/"
+            loader.baseResource = new FileSystemResource(path)
+          }
+        }
+
+    }
 
 	def doWithWebDescriptor = { webXml ->
   	   def mappingElement = webXml.'servlet-mapping'	

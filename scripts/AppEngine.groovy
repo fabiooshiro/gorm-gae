@@ -17,19 +17,24 @@ target(main: "Runs a Grails application in the AppEngine development environment
 	def debug = argsMap.debug ?: false
 	argsMap.params.clear()	
 	
-	if(!buildConfig.grails.war.destFile) {
-		buildConfig.grails.war.destFile="${basedir}/target/${grailsAppName}-${metadata.getApplicationVersion()}.war"		
+	def warFile = buildConfig.grails.war.destFile
+    if(!warFile) {
+        warFile = "${basedir}/target/${grailsAppName}-${metadata.getApplicationVersion()}.war"
+		buildConfig.grails.war.destFile = warFile
 	}
 	if(cmd!='run')
 		grailsEnv = Environment.PRODUCTION.name
-		
+
+    ant.delete(dir:"${grailsSettings.projectWorkDir}/stage", failonerror:false)
+    ant.delete(file: warFile, failonerror:false)
 	war()
 	
 	switch(cmd) {
 		case 'package':
 			def targetDir = "${basedir}/target/war"
 			ant.delete dir:targetDir
-			ant.mkdir dir:targetDir			
+			ant.mkdir dir:targetDir
+            ant.unzip(src:warFile, dest:targetDir)
 			ant.copy(todir:targetDir) {
 				fileset(dir:"${grailsSettings.projectWorkDir}/stage")
 			}

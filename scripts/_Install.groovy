@@ -21,25 +21,13 @@ if(isInteractive) {
 	persistenceProvider = ant.antProject.properties["persistence.provider"]
 }
 
-ant.copy(
+/*ant.copy(
     todir:"${basedir}/test/unit/org/grails/appengine/",
     file:"${appEnginePluginDir}/src/templates/test/org/grails/appengine/AppEngineTestEnvironment.groovy",
     overwrite:true)
-
+*/
 if(persistenceProvider == 'jdo') {
 	ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/jdoconfig.xml")
-	ant.copy(
-	    todir:"${basedir}/src/groovy/org/grails/appengine",
-	    file:"${appEnginePluginDir}/src/templates/src/groovy/org/grails/appengine/AppEnginePersistenceManagerFactory.groovy",
-	    overwrite:true)
-	ant.copy(
-	    tofile:"${basedir}/test/unit/org/grails/appengine/AppEngineGrailsUnitTestCase.groovy",
-	    file:"${appEnginePluginDir}/src/templates/test/org/grails/appengine/AppEngineGrailsUnitTestCaseForJdo.groovy",
-	    overwrite:true)
-    ant.copy(
-        todir:"${basedir}/test/unit/org/grails/appengine/",
-        file:"${appEnginePluginDir}/src/templates/test/org/grails/appengine/AppEnginePersistenceManagerFactoryForTest.groovy",
-        overwrite:true)
 
 }
 else if(persistenceProvider == 'jpa') {
@@ -58,6 +46,7 @@ ant.copy(todir:"${basedir}/src/templates") {
 }
 
 ant.mkdir(dir:"${basedir}/src/templates/war")
-ant.copy(file:"${appEnginePluginDir}/src/templates/war/web.xml",todir:"${basedir}/src/templates/war", overwrite:true) 	
+ant.copy(file:"${appEnginePluginDir}/src/templates/war/web.xml",todir:"${basedir}/src/templates/war", overwrite:true)
+ant.copy(file:"${appEnginePluginDir}/src/templates/war/appengine-web.xml",todir:"${basedir}/web-app/WEB-INF")
 println "Installed [$persistenceProvider] config to ${basedir}/grails-app/conf"
 
