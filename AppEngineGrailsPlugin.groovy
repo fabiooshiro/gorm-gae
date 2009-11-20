@@ -3,6 +3,10 @@ import org.codehaus.groovy.grails.web.pages.GroovyPageResourceLoader
 import grails.util.Environment
 import org.springframework.context.ApplicationContext
 import org.springframework.core.io.FileSystemResource
+import org.codehaus.groovy.grails.commons.GrailsDomainClass
+import com.google.appengine.api.datastore.Key
+import com.google.appengine.api.datastore.KeyFactory
+import org.grails.appengine.AppEnginePropertyEditorRegistrar
 
 class AppEngineGrailsPlugin {
     // the plugin version
@@ -32,6 +36,8 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 		if(!persistenceEngine) {
 			persistenceEngine = application.metadata['appengine.persistence'] ?: null
 		}
+
+        appEnginePropertyEditorRegistrar(AppEnginePropertyEditorRegistrar)
 		
 		if(persistenceEngine?.equalsIgnoreCase("JDO")) {
 			log.info "Configuring JDO PersistenceManager"
@@ -109,6 +115,28 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
             if(!path.endsWith('/')) path = "$path/"
             loader.baseResource = new FileSystemResource(path)
           }
+        }
+
+        for(GrailsDomainClass domain in application.domainClasses) {
+            GrailsDomainClass currentDomain = domain
+            if(Key.isAssignableFrom(currentDomain.identifier.type)) {
+              Class c = domain.clazz
+              MetaClass mc = c.metaClass
+              def getMethod = mc.getStaticMetaMethod("get", [Serializable] as Class[])
+              if(getMethod && getMethod?.isStatic()) {
+                mc.static.get = { Serializable id ->
+                   if(!(id instanceof Key)) {
+                      try {
+                        Long l = Long.valueOf(id.toString())
+                        id = KeyFactory.createKey(c.simpleName, l)
+                      } catch (e) {
+                        id = KeyFactory.createKey(c.simpleName, id.toString())
+                      }
+                   }
+                   getMethod.invoke(delegate, id)
+                }
+              }
+            }
         }
 
     }
