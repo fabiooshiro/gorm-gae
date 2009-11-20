@@ -21,21 +21,12 @@ if(isInteractive) {
 	persistenceProvider = ant.antProject.properties["persistence.provider"]
 }
 
-/*ant.copy(
-    todir:"${basedir}/test/unit/org/grails/appengine/",
-    file:"${appEnginePluginDir}/src/templates/test/org/grails/appengine/AppEngineTestEnvironment.groovy",
-    overwrite:true)
-*/
 if(persistenceProvider == 'jdo') {
 	ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/jdoconfig.xml")
 
 }
 else if(persistenceProvider == 'jpa') {
 	ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/persistence.xml")
-	ant.copy(
-	    todir:"${basedir}/src/groovy/org/grails/appengine",
-	    file:"${appEnginePluginDir}/src/templates/src/groovy/org/grails/appengine/AppEngineEntityManagerFactory.groovy",
-	    overwrite:true)
 }
 
 
