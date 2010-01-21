@@ -22,12 +22,7 @@ eventGenerateWebXmlEnd = {
 	warPlugins()
 	packagePluginsForWar(stagingDir)
     packageAppEngineJars(stagingDir)
-  
-	ant.mkdir(dir:"${stagingDir}/WEB-INF/grails-app")	
-    ant.copy(todir:"${stagingDir}/WEB-INF/grails-app", overwrite:true) {
-        fileset(dir:"${resourcesDirPath}/grails-app", includes:"i18n/**")
-    }
-	
+  	
 	println "Enhancing JDO classes"
 	ant.'import'(file:"${appEngineSDK}/config/user/ant-macros.xml")
 	ant.enhance_war(war:stagingDir)	

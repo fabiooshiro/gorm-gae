@@ -39,5 +39,9 @@ ant.copy(todir:"${basedir}/src/templates") {
 ant.mkdir(dir:"${basedir}/src/templates/war")
 ant.copy(file:"${appEnginePluginDir}/src/templates/war/web.xml",todir:"${basedir}/src/templates/war", overwrite:true)
 ant.copy(file:"${appEnginePluginDir}/src/templates/war/appengine-web.xml",todir:"${basedir}/web-app/WEB-INF")
+
+// cleanup
+ant.delete(dir:"${basedir}/web-app/WEB-INF/lib", failonerror:false)
+ant.delete(dir:"${basedir}/web-app/WEB-INF/classes", failonerror:false)
 println "Installed [$persistenceProvider] config to ${basedir}/grails-app/conf"
 

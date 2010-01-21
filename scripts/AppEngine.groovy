@@ -36,7 +36,13 @@ target(main: "Runs a Grails application in the AppEngine development environment
 			ant.mkdir dir:targetDir
             ant.unzip(src:warFile, dest:targetDir)
 			ant.copy(todir:targetDir) {
-				fileset(dir:"${grailsSettings.projectWorkDir}/stage")
+				fileset(dir:"${grailsSettings.projectWorkDir}/stage") 
+			}
+			ant.delete(failonerror:false) {
+				fileset(dir:targetDir) {
+					include(name:"**/appengine-generated/**.bin")					
+					include(name:"stacktrace.log")										
+				}
 			}
 			println "Created distribution at $targetDir"
 		break

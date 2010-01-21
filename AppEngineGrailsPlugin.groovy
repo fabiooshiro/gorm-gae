@@ -10,9 +10,9 @@ import org.grails.appengine.AppEnginePropertyEditorRegistrar
 
 class AppEngineGrailsPlugin {
     // the plugin version
-    def version = "0.8.6"
+    def version = "0.8.7"
     // the version or versions of Grails the plugin is designed for
-    def grailsVersion = "1.1 > *"
+    def grailsVersion = "1.2 > *"
 	def evict = ['hibernate']
 	def loadAfter = ['gorm-jpa']
     // resources that are excluded from plugin packaging
@@ -142,6 +142,10 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
     }
 
 	def doWithWebDescriptor = { webXml ->
+		// change log4j listener
+		def listener = webXml.listener.find { it.'listener-class'.text().contains('Log4jConfigListener') }
+		listener.'listener-class' = 'org.grails.appengine.Log4jConfigListener'
+		// google security
   	   def mappingElement = webXml.'servlet-mapping'	
 	   def config = ConfigurationHolder.config
 	   def patterns = [] 
