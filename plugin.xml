@@ -1,4 +1,4 @@
-<plugin name='app-engine' version='0.8.7' grailsVersion='1.2 &gt; *'>
+<plugin name='app-engine' version='0.8.8' grailsVersion='1.2 &gt; *'>
   <author>Graeme Rocher</author>
   <authorEmail>graeme.rocher@springsource.com</authorEmail>
   <title>Grails AppEngine plugin</title>

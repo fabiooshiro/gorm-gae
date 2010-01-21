@@ -7,14 +7,19 @@ import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import com.google.appengine.api.datastore.Key
 import com.google.appengine.api.datastore.KeyFactory
 import org.grails.appengine.AppEnginePropertyEditorRegistrar
+import org.apache.commons.logging.LogFactory
+import org.apache.log4j.LogManager
+import org.codehaus.groovy.grails.plugins.logging.Log4jConfig
+import grails.util.GrailsNameUtils
 
 class AppEngineGrailsPlugin {
     // the plugin version
-    def version = "0.8.7"
+    def version = "0.8.8"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "1.2 > *"
-	def evict = ['hibernate']
+	def evict = ['hibernate', 'logging']
 	def loadAfter = ['gorm-jpa']
+    def observe = ['*']	
     // resources that are excluded from plugin packaging
     def pluginExcludes = [
             "grails-app/views/error.gsp",
@@ -30,6 +35,44 @@ A plugin that integrates the AppEngine development runtime and deployment tools 
 
     // URL to the plugin's documentation
     def documentation = "http://grails.org/plugin/app-engine"
+
+    def doWithDynamicMethods = {applicationContext ->
+        for(handler in application.artefactHandlers) {
+            for( artefact in application."${handler.type}Classes" ) {
+                addLogMethod(artefact.clazz, handler)
+            }
+        }
+    }
+
+    def onConfigChange = {event ->
+        def log4jConfig = event.source.log4j
+        if (log4jConfig instanceof Closure) {
+            LogManager.resetConfiguration()
+            new Log4jConfig().configure(log4jConfig)
+        }
+    }
+
+    def onChange = {event ->
+        if (event.source instanceof Class) {
+            log.debug "Adding log method to modified artefact [${event.source}]"
+            def handler = application.artefactHandlers.find {it.isArtefact(event.source)}
+            if (handler) {
+                addLogMethod(event.source, handler)
+            }
+        }
+    }
+
+
+    def addLogMethod(artefactClass, handler) {
+        // Formulate a name of the form grails.<artefactType>.classname
+        // Do it here so not calculated in every getLog call :)
+        def type = GrailsNameUtils.getPropertyNameRepresentation(handler.type)
+        def logName = "grails.app.${type}.${artefactClass.name}".toString()
+
+        def log = LogFactory.getLog(logName)
+
+        artefactClass.metaClass.getLog << {-> log}
+    }
 
 	def doWithSpring = {
 		def persistenceEngine = application.config.google.appengine.persistence ?: null
