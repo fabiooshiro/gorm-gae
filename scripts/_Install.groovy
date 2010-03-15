@@ -15,6 +15,7 @@ ant.mkdir(dir:"${basedir}/src/groovy/org/grails/appengine")
 ant.mkdir(dir:"${basedir}/test/unit/org/grails/appengine/")
 
 uninstallPluginForName "hibernate"
+uninstallPluginForName "tomcat"
 persistenceProvider = "jdo"
 if(isInteractive) {
 	ant.input(message:"Do you want to use JPA or JDO for persistence?",validargs:"jpa,jdo", addproperty:"persistence.provider")
@@ -27,6 +28,7 @@ if(persistenceProvider == 'jdo') {
 }
 else if(persistenceProvider == 'jpa') {
 	ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/persistence.xml")
+	installPluginForName "gorm-jpa"
 }
 
 
