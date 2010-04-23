@@ -87,9 +87,14 @@ eventSetClasspath = {
 	classpathSet = false
     BuildSettings buildSettings = grailsSettings
 
-    classesDir = new File("${basedir}/web-app/WEB-INF/classes")
+	def webInfClasses = new File("${basedir}/web-app/WEB-INF/classes")
+    classesDir = webInfClasses
+    pluginClassesDir = classesDir
     classesDirPath = classesDir.path
+	pluginClassesDirPath = classesDirPath
     buildSettings.classesDir = classesDir
+	if(buildSettings.hasProperty('pluginClassesDir'))
+    	buildSettings.pluginClassesDir = classesDir
 	
 	def devAppEngineJars = ant.fileScanner {
 		fileset(dir:"${appEngineSDK}/lib") {
