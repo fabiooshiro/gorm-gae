@@ -114,6 +114,7 @@ private appcfg( action, war ){
 setDefaultTarget(main)
 
 private startDevServer(boolean debug) {
+	println "startDevServer(${debug})"
 	startAppEngineGeneratedThread()	
 	startAppEngineReloadThread()
 	ant.dev_appserver(war:stagingDir) {

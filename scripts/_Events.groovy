@@ -1,11 +1,11 @@
 import grails.util.BuildSettings
 
-includeTargets << new File("${appEnginePluginDir}/scripts/_AppEngineCommon.groovy")
+includeTargets << new File("${gormGaePluginDir}/scripts/_AppEngineCommon.groovy")
 includeTargets << grailsScript("_GrailsWar")
 
 eventGenerateWebXmlEnd = {
 	packagePluginsForWar("${basedir}/web-app")
-    ant.copy(file:webXmlFile, todir:"${basedir}/web-app/WEB-INF", overwrite:true)
+	ant.copy(file:webXmlFile, todir:"${basedir}/web-app/WEB-INF", overwrite:true)
 	System.setProperty("grails.server.factory", "org.grails.appengine.AppEngineJettyServerFactory")
 	defaultWarDependencies.curry(ant)
 	def libDir = "${basedir}/web-app/WEB-INF/lib"
@@ -17,16 +17,16 @@ eventGenerateWebXmlEnd = {
 
 	stagingDir = "${basedir}/web-app"
 
-    packagePersistenceDescriptors(stagingDir, basedir)
+	packagePersistenceDescriptors(stagingDir, basedir)
 	createDescriptor()
 	warPlugins()
 	packagePluginsForWar(stagingDir)
-    packageAppEngineJars(stagingDir)
-  	
+	packageAppEngineJars(stagingDir)
+  	/*
 	println "Enhancing JDO classes"
 	ant.'import'(file:"${appEngineSDK}/config/user/ant-macros.xml")
 	ant.enhance_war(war:stagingDir)	
-	
+	//*/
 }
 
 eventCreateWarStart = { warLocation, stagingDir ->

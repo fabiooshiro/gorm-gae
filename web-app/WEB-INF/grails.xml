@@ -1,0 +1,10 @@
+<grails>
+  <resources>
+    <resource>org.grails.appengine.AppEngineReloadController</resource>
+    <resource>TestController</resource>
+    <resource>UrlMappings</resource>
+  </resources>
+  <plugins>
+    <plugin>AppEngineGrailsPlugin</plugin>
+  </plugins>
+</grails>
