@@ -9,7 +9,7 @@
 //    ant.mkdir(dir:"${basedir}/grails-app/jobs")
 //
 
-ant.copy(todir:"${basedir}/grails-app/conf", file:"${appEnginePluginDir}/src/templates/datastore-indexes.xml")
+ant.copy(todir:"${basedir}/grails-app/conf", file:"$gormGaePluginDir}/src/templates/datastore-indexes.xml")
 //ant.mkdir(dir:"${basedir}/src/templates")
 ant.mkdir(dir:"${basedir}/src/groovy/org/grails/appengine")
 ant.mkdir(dir:"${basedir}/test/unit/org/grails/appengine/")
@@ -42,8 +42,8 @@ ant.copy(todir:"${basedir}/src/templates") {
 }
 */
 ant.mkdir(dir:"${basedir}/src/templates/war")
-ant.copy(file:"${appEnginePluginDir}/src/templates/war/web.xml",todir:"${basedir}/src/templates/war", overwrite:true)
-ant.copy(file:"${appEnginePluginDir}/src/templates/war/appengine-web.xml",todir:"${basedir}/web-app/WEB-INF")
+ant.copy(file:"${gormGaePluginDir}/src/templates/war/web.xml",todir:"${basedir}/src/templates/war", overwrite:true)
+ant.copy(file:"${gormGaePluginDir}/src/templates/war/appengine-web.xml",todir:"${basedir}/web-app/WEB-INF")
 
 // cleanup
 ant.delete(dir:"${basedir}/web-app/WEB-INF/lib", failonerror:false)

@@ -3,8 +3,15 @@ import grails.util.BuildSettings
 includeTargets << new File("${gormGaePluginDir}/scripts/_AppEngineCommon.groovy")
 includeTargets << grailsScript("_GrailsWar")
 
+def chkInstall = {
+    ant.copy(file:"${gormGaePluginDir}/src/templates/war/appengine-web.xml",todir:"${basedir}/web-app/WEB-INF", overwrite:false)
+}
+
+
 eventGenerateWebXmlEnd = {
-	packagePluginsForWar("${basedir}/web-app")
+    println "eventGenerateWebXmlEnd"
+    chkInstall()
+    packagePluginsForWar("${basedir}/web-app")
 	ant.copy(file:webXmlFile, todir:"${basedir}/web-app/WEB-INF", overwrite:true)
 	System.setProperty("grails.server.factory", "org.grails.appengine.AppEngineJettyServerFactory")
 	defaultWarDependencies.curry(ant)
@@ -32,7 +39,6 @@ eventGenerateWebXmlEnd = {
 eventCreateWarStart = { warLocation, stagingDir ->
 	def appVersion = metadata.'app.version'
 	def appName = config.google.appengine.application ?: grailsAppName
-
 
     String targetAppEngineWebXml = "${stagingDir}/WEB-INF/appengine-web.xml"
     ant.copy(file:"${basedir}/web-app/WEB-INF/appengine-web.xml", tofile:targetAppEngineWebXml, overwrite:true)

@@ -65,6 +65,20 @@ class GaePluginSupportService {
 		}
 	}
 	
+	def remove( datastore, ownerClassName, ownerId){
+		//println "ownerClassName = ${ownerClassName} ownerId = ${ownerId}"
+		managedCascadeList.get(ownerClassName).each{ owned -> // Cascade: apagar todos os que belongsTo esta classe
+			//println "owned = ${owned}"
+			Query q = new Query(owned.className)//.setKeysOnly();
+			q.addFilter(owned.prop.substring(2), Query.FilterOperator.EQUAL, ownerId) //misterio
+			PreparedQuery pq = datastore.prepare(q)
+			for (Entity result : pq.asIterable()) {
+				datastore.delete(result.getKey())
+				remove(datastore, owned.className, result.getKey().getId())
+			}
+		}
+	}
+		
 	def setStaticGet(clazz){
 		//['acme.Author' : [[className:'acme.Book', prop: '__authorId'], [className: 'acme.Owned', prop: '__ownedId']]
 		managedCascadeList.put(clazz.name, [])
@@ -103,8 +117,22 @@ class GaePluginSupportService {
 		
 		clazz.metaClass.id = null
 		
-		if(clazz.metaClass.properties*.name.contains('belongsTo')){
+		def propertyNames = clazz.metaClass.properties*.name
+		
+		def constraintsParser = new ConstraintsParser()
+		if(propertyNames.contains('constraints')){
+			clazz.constraints.each{ k, v ->
+				println "${k}"
+				v.constraints.each{ k2, v2 ->
+					println "att ${k2} = ${v2}"
+				}
+			}
+		}
+		
+		println 'chk belongs to'
+		if(propertyNames.contains('belongsTo')){
 			clazz.belongsTo.each{ k, v ->
+				println clazz.name + ' belongs to ' + v.name
 				def fkPropName = "__${k}Id" 
 				clazz.metaClass."${fkPropName}" = -1L
 				clazz.metaClass."${k}" = null
@@ -162,20 +190,6 @@ class GaePluginSupportService {
 			getLong(id)
 		}
 
-		def remove = { datastore, ownerClassName, ownerId ->
-			//println "ownerClassName = ${ownerClassName} ownerId = ${ownerId}"
-			managedCascadeList.get(ownerClassName).each{ owned -> // Cascade: apagar todos os que belongsTo esta classe
-				//println "owned = ${owned}"
-				Query q = new Query(owned.className)//.setKeysOnly();
-				q.addFilter(owned.prop.substring(2), Query.FilterOperator.EQUAL, ownerId) //misterio
-				PreparedQuery pq = datastore.prepare(q)
-				for (Entity result : pq.asIterable()) {
-					datastore.delete(result.getKey())
-					remove(datastore, owned.className, result.getKey().getId())
-				}
-			}
-		}
-		
 		clazz.metaClass.delete = { Map opts = [:] ->
 			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 			datastore.delete(KeyFactory.createKey(clazz.name, delegate.id))
@@ -184,6 +198,17 @@ class GaePluginSupportService {
 		
 		clazz.metaClass.save = { Map opts = [:] ->
 			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+			
+			//verificar unique
+			constraintsParser.uniques.each{ uniqueProp ->
+				Query q = new Query(clazz.name)//.setKeysOnly();
+				q.addFilter(uniqueProp, Query.FilterOperator.EQUAL, ownerId)
+				if(datastore.prepare(q).countEntities(withDefaults())>0){
+					throw new RuntimeException("not unique exception $prop")
+				}
+				println "    unique ${prop}="+delegate."$prop"
+			}
+			
 			Entity entity
 			if(delegate.id){
 				entity = datastore.get(KeyFactory.createKey(clazz.name, delegate.id));
