@@ -1,10 +1,12 @@
 <grails>
   <resources>
     <resource>org.grails.appengine.AppEngineReloadController</resource>
+    <resource>oshiro.gorm.gae.GaePluginSupportService</resource>
     <resource>TestController</resource>
     <resource>UrlMappings</resource>
   </resources>
   <plugins>
     <plugin>AppEngineGrailsPlugin</plugin>
+    <plugin>GormGaeGrailsPlugin</plugin>
   </plugins>
 </grails>

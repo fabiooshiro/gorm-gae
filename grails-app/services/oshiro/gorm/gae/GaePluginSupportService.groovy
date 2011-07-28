@@ -119,16 +119,6 @@ class GaePluginSupportService {
 		
 		def propertyNames = clazz.metaClass.properties*.name
 		
-		def constraintsParser = new ConstraintsParser()
-		if(propertyNames.contains('constraints')){
-			clazz.constraints.each{ k, v ->
-				println "${k}"
-				v.constraints.each{ k2, v2 ->
-					println "att ${k2} = ${v2}"
-				}
-			}
-		}
-		
 		println 'chk belongs to'
 		if(propertyNames.contains('belongsTo')){
 			clazz.belongsTo.each{ k, v ->
@@ -199,14 +189,17 @@ class GaePluginSupportService {
 		clazz.metaClass.save = { Map opts = [:] ->
 			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 			
-			//verificar unique
-			constraintsParser.uniques.each{ uniqueProp ->
-				Query q = new Query(clazz.name)//.setKeysOnly();
-				q.addFilter(uniqueProp, Query.FilterOperator.EQUAL, ownerId)
-				if(datastore.prepare(q).countEntities(withDefaults())>0){
-					throw new RuntimeException("not unique exception $prop")
+			if(propertyNames.contains('constraints')){//TODO: tratar threads
+				//verificar unique
+				clazz.constraints.each{ k, v ->
+					if(v.getAppliedConstraint('unique')){
+						Query q = new Query(clazz.name)//.setKeysOnly();
+						q.addFilter(k, Query.FilterOperator.EQUAL, delegate."$k")
+						if(datastore.prepare(q).countEntities(withDefaults())>0){
+							throw new RuntimeException("not unique exception $k")
+						}
+					}
 				}
-				println "    unique ${prop}="+delegate."$prop"
 			}
 			
 			Entity entity

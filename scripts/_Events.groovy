@@ -4,7 +4,7 @@ includeTargets << new File("${gormGaePluginDir}/scripts/_AppEngineCommon.groovy"
 includeTargets << grailsScript("_GrailsWar")
 
 def chkInstall = {
-    ant.copy(file:"${gormGaePluginDir}/src/templates/war/appengine-web.xml",todir:"${basedir}/web-app/WEB-INF", overwrite:false)
+    //ant.copy(file:"${gormGaePluginDir}/src/templates/war/appengine-web.xml",todir:"${basedir}/web-app/WEB-INF", overwrite:false)
 }
 
 
@@ -29,7 +29,7 @@ eventGenerateWebXmlEnd = {
 	warPlugins()
 	packagePluginsForWar(stagingDir)
 	packageAppEngineJars(stagingDir)
-  	/*
+  	//*
 	println "Enhancing JDO classes"
 	ant.'import'(file:"${appEngineSDK}/config/user/ant-macros.xml")
 	ant.enhance_war(war:stagingDir)	

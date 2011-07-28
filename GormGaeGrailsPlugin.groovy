@@ -7,18 +7,21 @@ import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import com.google.appengine.api.datastore.Key
 import com.google.appengine.api.datastore.KeyFactory
 import org.grails.appengine.AppEnginePropertyEditorRegistrar
-import org.apache.commons.logging.LogFactory
-import org.apache.log4j.LogManager
-import org.codehaus.groovy.grails.plugins.logging.Log4jConfig
+//import org.apache.commons.logging.LogFactory
+//import org.apache.log4j.LogManager
+//import org.codehaus.groovy.grails.plugins.logging.Log4jConfig
 import grails.util.GrailsNameUtils
+import org.codehaus.groovy.grails.validation.ConstrainedProperty
+import oshiro.gorm.gae.GaeUniqueConstraint
 
 class GormGaeGrailsPlugin {
     // the plugin version
     def version = "0.0.1"
     // the version or versions of Grails the plugin is designed for
-    def grailsVersion = "1.3 > *"
+    def grailsVersion = "1.3.7 > *"
 	def evict = ['hibernate', 'logging']
-	def loadAfter = ['gorm-jpa']
+	def loadBefore = ['core']
+	//def loadAfter = ['gorm-jpa']
 	def observe = ['*']
 	// resources that are excluded from plugin packaging
 	def pluginExcludes = [
@@ -37,17 +40,16 @@ class GormGaeGrailsPlugin {
 	def doWithDynamicMethods = {applicationContext ->
 		for(handler in application.artefactHandlers) {
 			for( artefact in application."${handler.type}Classes" ) {
-				addLogMethod(artefact.clazz, handler)
+				//addLogMethod(artefact.clazz, handler)
 			}
 		}
-		
 	}
 
 	def onConfigChange = {event ->
 		def log4jConfig = event.source.log4j
 		if (log4jConfig instanceof Closure) {
-			LogManager.resetConfiguration()
-			new Log4jConfig().configure(log4jConfig)
+			//LogManager.resetConfiguration()
+			//new Log4jConfig().configure(log4jConfig)
 		}
 	}
 
@@ -61,19 +63,24 @@ class GormGaeGrailsPlugin {
 		}
 	}
 
-
 	def addLogMethod(artefactClass, handler) {
 		// Formulate a name of the form grails.<artefactType>.classname
 		// Do it here so not calculated in every getLog call :)
 		def type = GrailsNameUtils.getPropertyNameRepresentation(handler.type)
 		def logName = "grails.app.${type}.${artefactClass.name}".toString()
+		
+		println "add log to ${logName}"
 
-		def log = LogFactory.getLog(logName)
+		//def log = LogFactory.getLog(logName)
 
-		artefactClass.metaClass.getLog << {-> log}
+		//artefactClass.metaClass.getLog << {-> log}
 	}
 
 	def doWithSpring = {
+		println "*********************************************"
+		println "Gae unique constraint..."
+		println "*********************************************"
+		ConstrainedProperty.registerNewConstraint('unique', GaeUniqueConstraint.class)
 		return
 		def persistenceEngine = application.config.google.appengine.persistence ?: null
 		if(!persistenceEngine) {
@@ -147,8 +154,15 @@ class GormGaeGrailsPlugin {
 		}
 	}
 
-	def doWithApplicationContext = { applicationContext ->
+	def doWithApplicationContext = { ctx ->
 		println "gormGae.doWithApplicationContext"
+		println "*****************************"
+		println "Add GORM methods:"
+		def gaePluginSupportservice = ctx.getBean('gaePluginSupportService')
+		for(def domain in application.domainClasses) {
+			println "${domain.clazz} GORM done"
+			gaePluginSupportservice.setStaticGet(domain.clazz)
+		}
 	}
 	
 	def doWithApplicationContextOld = { ApplicationContext ctx ->
@@ -188,7 +202,10 @@ class GormGaeGrailsPlugin {
 	}
 
 	def doWithWebDescriptor = { webXml ->
-		println "WebDescriptor *********************************************************"
+		println "************************"
+		println "Gorm Gae Web Descriptor"
+		println "************************"
+		
 		// change log4j listener
 		def listener = webXml.listener.find { it.'listener-class'.text().contains('Log4jConfigListener') }
 		listener.'listener-class' = 'org.grails.appengine.Log4jConfigListener'

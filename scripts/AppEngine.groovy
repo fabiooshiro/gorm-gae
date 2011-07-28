@@ -1,5 +1,5 @@
 import grails.util.*
-
+includeTargets << new File("${gormGaePluginDir}/scripts/_AppEngineCommon.groovy")
 includeTargets << grailsScript("_GrailsWar")
 
 scriptEnv = "dev"
@@ -45,7 +45,10 @@ target(main: "Runs a Grails application in the AppEngine development environment
 				}
 			}
 			println "Created distribution at $targetDir"
-		break
+			break
+		case 'reinstall':
+			doInstallGormGaePlugin()
+			break
 		case 'run':
 			startDevServer(debug)		
 			break
