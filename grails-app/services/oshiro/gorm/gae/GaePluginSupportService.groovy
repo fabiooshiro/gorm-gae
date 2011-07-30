@@ -9,6 +9,7 @@ import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.PreparedQuery;
 
+import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler;
 import static com.google.appengine.api.datastore.FetchOptions.Builder.*;
 
 import com.google.appengine.api.datastore.KeyFactory;
@@ -16,6 +17,7 @@ import com.google.appengine.api.datastore.Query;
 import org.apache.commons.beanutils.PropertyUtils;
 
 import java.beans.Introspector
+import java.lang.reflect.Field;
 
 class GaePluginSupportService {
 	
@@ -119,29 +121,43 @@ class GaePluginSupportService {
 		
 		def propertyNames = clazz.metaClass.properties*.name
 		
+		def relationsPropCreated = []
+		
+		def createFkProp = { k, v ->
+			def fkPropName = "__${k}Id"
+			clazz.metaClass."${fkPropName}" = -1L
+			clazz.metaClass."${k}" = null
+			clazz.metaClass."get${k[0].toUpperCase()}${k.substring(1)}" = {
+				if(delegate.@"$k" == null && delegate."${fkPropName}" != -1L){
+					delegate.@"$k" = v.get(delegate."${fkPropName}")
+				}
+				println "get ${k} == ${delegate.@"$k"}"
+				return delegate.@"$k"
+			}
+			clazz.metaClass."set${k[0].toUpperCase()}${k.substring(1)}Id" = { id ->
+				println "set ${fkPropName} = ${id}"
+				if(id instanceof String){
+					delegate."${fkPropName}" = Long.valueOf(id)
+				}else{
+					delegate."${fkPropName}" = id
+				}
+			}
+			return fkPropName
+		}
+		
 		println 'chk belongs to'
 		if(propertyNames.contains('belongsTo')){
 			clazz.belongsTo.each{ k, v ->
+				relationsPropCreated.add(k)
 				println clazz.name + ' belongs to ' + v.name
-				def fkPropName = "__${k}Id" 
-				clazz.metaClass."${fkPropName}" = -1L
-				clazz.metaClass."${k}" = null
-				clazz.metaClass."get${k[0].toUpperCase()}${k.substring(1)}" = {
-					if(delegate.@"$k" == null && delegate."${fkPropName}" != -1L){
-						delegate.@"$k" = v.get(delegate."${fkPropName}")
-					}
-					println "get ${k} == ${delegate.@"$k"}"
-					return delegate.@"$k"
-				}
-				clazz.metaClass."set${k[0].toUpperCase()}${k.substring(1)}Id" = { id ->
-					println "set ${fkPropName} = ${id}"
-					if(id instanceof String){
-						delegate."${fkPropName}" = Long.valueOf(id)
-					}else{
-						delegate."${fkPropName}" = id
-					}
-				}
+				def fkPropName = createFkProp(k, v)
 				managedCascadeList.get(v.name, []).add([className: clazz.name, prop: fkPropName])
+			}
+		}
+		
+		clazz.getDeclaredFields().each{ Field field ->
+			if(DomainClassArtefactHandler.isDomainClass(field.getType()) && !relationsPropCreated.contains(field.name)){
+				createFkProp(field.name, field.getType())
 			}
 		}
 		
@@ -178,6 +194,10 @@ class GaePluginSupportService {
 		
 		clazz.metaClass.static.get = { Long id ->
 			getLong(id)
+		}
+		
+		clazz.metaClass.static.withTransaction = { Closure clos ->
+			clos()
 		}
 
 		clazz.metaClass.delete = { Map opts = [:] ->
