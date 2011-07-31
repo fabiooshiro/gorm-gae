@@ -85,10 +85,16 @@ class GaePluginSupportService {
 		//['acme.Author' : [[className:'acme.Book', prop: '__authorId'], [className: 'acme.Owned', prop: '__ownedId']]
 		managedCascadeList.put(clazz.name, [])
 		
+		def metaClazz = clazz.metaClass
+		def propertyNames = metaClass.properties*.name
+		def relationsPropCreated = []		
+		metaClass.id = null
+		
 		def bindProps = { r, entity ->
 			r.id = entity.getKey().getId()
 			entity.getProperties().each{ k, v ->
 				try{
+					if(k.startsWith('__') && k.endsWith('Id')) return
 					if(k != '$const$0' && r.metaClass.hasProperty(r, k)){
 						if(PropertyUtils.getPropertyType(r, k)?.name == 'java.math.BigDecimal'){
 							println "set bigDecimal = ${v}"
@@ -97,6 +103,7 @@ class GaePluginSupportService {
 							r."$k" = v
 						}
 					} else {
+						println "dont has prop ${k}"
 					}
 				}catch(Throwable e){
 					println "Error setting prop '${k}' = '${v}'"
@@ -117,30 +124,25 @@ class GaePluginSupportService {
 			}
 		}
 		
-		clazz.metaClass.id = null
-		
-		def propertyNames = clazz.metaClass.properties*.name
-		
-		def relationsPropCreated = []
-		
 		def createFkProp = { k, v ->
 			def fkPropName = "__${k}Id"
-			clazz.metaClass."${fkPropName}" = -1L
-			clazz.metaClass."${k}" = null
-			clazz.metaClass."get${k[0].toUpperCase()}${k.substring(1)}" = {
-				if(delegate.@"$k" == null && delegate."${fkPropName}" != -1L){
+			metaClazz."${fkPropName}" = null
+			metaClazz."${k}" = null
+			metaClazz."get${k[0].toUpperCase()}${k.substring(1)}" = {
+				if(delegate.@"$k" == null && delegate."${fkPropName}" != null){
 					delegate.@"$k" = v.get(delegate."${fkPropName}")
 				}
-				println "get ${k} == ${delegate.@"$k"}"
+				//println "get ${k}: ${delegate.@"$k"}, fk: ${fkPropName}, class: ${v}, fk: ${delegate."${fkPropName}"}, ${k}Id: ${delegate."${k}Id"}"
 				return delegate.@"$k"
 			}
-			clazz.metaClass."set${k[0].toUpperCase()}${k.substring(1)}Id" = { id ->
-				println "set ${fkPropName} = ${id}"
+			metaClazz."set${k[0].toUpperCase()}${k.substring(1)}Id" = { id ->
+				println "set ${fkPropName} = ${id} | ${id.class}"
 				if(id instanceof String){
 					delegate."${fkPropName}" = Long.valueOf(id)
 				}else{
 					delegate."${fkPropName}" = id
 				}
+				//println fkPropName + ' = ' + delegate."${fkPropName}" 
 			}
 			return fkPropName
 		}
@@ -148,8 +150,8 @@ class GaePluginSupportService {
 		println 'chk belongs to'
 		if(propertyNames.contains('belongsTo')){
 			clazz.belongsTo.each{ k, v ->
-				relationsPropCreated.add(k)
 				println clazz.name + ' belongs to ' + v.name
+				relationsPropCreated.add(k)
 				def fkPropName = createFkProp(k, v)
 				managedCascadeList.get(v.name, []).add([className: clazz.name, prop: fkPropName])
 			}
@@ -157,11 +159,12 @@ class GaePluginSupportService {
 		
 		clazz.getDeclaredFields().each{ Field field ->
 			if(DomainClassArtefactHandler.isDomainClass(field.getType()) && !relationsPropCreated.contains(field.name)){
+				println clazz.name + ' possui attr ' + field.name + ' do tipo ' + field.getType().name
 				createFkProp(field.name, field.getType())
 			}
 		}
 		
-		clazz.metaClass.static.list = { p ->
+		metaClazz.static.list = { p ->
 			def authorInstanceList = []
 			def total = 0
 			// Get a handle on the datastore itself
@@ -182,31 +185,31 @@ class GaePluginSupportService {
 			authorInstanceList
 		}
 		
-		clazz.metaClass.static.count = {
+		metaClazz.static.count = {
 			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 			Query query = new Query(clazz.name);
 			return (Long)datastore.prepare(query).countEntities(withDefaults())
 		}
 		
-		clazz.metaClass.static.get = { Serializable id ->
+		metaClazz.static.get = { Serializable id ->
 			getLong(Long.valueOf(id))
 		}
 		
-		clazz.metaClass.static.get = { Long id ->
+		metaClazz.static.get = { Long id ->
 			getLong(id)
 		}
 		
-		clazz.metaClass.static.withTransaction = { Closure clos ->
+		metaClazz.static.withTransaction = { Closure clos ->
 			clos()
 		}
 
-		clazz.metaClass.delete = { Map opts = [:] ->
+		metaClazz.delete = { Map opts = [:] ->
 			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 			datastore.delete(KeyFactory.createKey(clazz.name, delegate.id))
 			remove(datastore, clazz.name, delegate.id)
 		}
 		
-		clazz.metaClass.save = { Map opts = [:] ->
+		metaClazz.save = { Map opts = [:] ->
 			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 			
 			if(propertyNames.contains('constraints')){//TODO: tratar threads
@@ -233,12 +236,15 @@ class GaePluginSupportService {
 			
 			def keys = delegate.properties.keySet() - ['id', 'metaClass', 'class', 'errors', 'constraints', 'belongsTo', 'hasMany', 'log']
 			keys.each{ k ->
+				if(k.startsWith('__') && k.endsWith('Id')) return
 				def value = delegate."$k"
+				println "saving ${k} = ${value}"
 				if(value instanceof String 
 					|| value instanceof Long
 					|| value instanceof Integer
 					|| value instanceof Double
 					|| value instanceof Date
+					|| value instanceof Boolean
 					){
 					entity.setProperty(k, value)
 				} else if(value instanceof BigDecimal){

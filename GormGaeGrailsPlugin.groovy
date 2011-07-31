@@ -7,9 +7,9 @@ import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import com.google.appengine.api.datastore.Key
 import com.google.appengine.api.datastore.KeyFactory
 import org.grails.appengine.AppEnginePropertyEditorRegistrar
-//import org.apache.commons.logging.LogFactory
-//import org.apache.log4j.LogManager
-//import org.codehaus.groovy.grails.plugins.logging.Log4jConfig
+import org.apache.commons.logging.LogFactory
+import org.apache.log4j.LogManager
+import org.codehaus.groovy.grails.plugins.logging.Log4jConfig
 import grails.util.GrailsNameUtils
 import org.codehaus.groovy.grails.validation.ConstrainedProperty
 import oshiro.gorm.gae.GaeUniqueConstraint
@@ -20,7 +20,7 @@ class GormGaeGrailsPlugin {
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "1.3.7 > *"
 	def evict = ['hibernate', 'logging']
-	def loadBefore = ['core']
+	//def loadBefore = ['core']
 	//def loadAfter = ['gorm-jpa']
 	def observe = ['*']
 	// resources that are excluded from plugin packaging
@@ -40,7 +40,7 @@ class GormGaeGrailsPlugin {
 	def doWithDynamicMethods = {applicationContext ->
 		for(handler in application.artefactHandlers) {
 			for( artefact in application."${handler.type}Classes" ) {
-				//addLogMethod(artefact.clazz, handler)
+				addLogMethod(artefact.clazz, handler)
 			}
 		}
 	}
@@ -48,8 +48,8 @@ class GormGaeGrailsPlugin {
 	def onConfigChange = {event ->
 		def log4jConfig = event.source.log4j
 		if (log4jConfig instanceof Closure) {
-			//LogManager.resetConfiguration()
-			//new Log4jConfig().configure(log4jConfig)
+			LogManager.resetConfiguration()
+			new Log4jConfig().configure(log4jConfig)
 		}
 	}
 
@@ -71,9 +71,9 @@ class GormGaeGrailsPlugin {
 		
 		println "add log to ${logName}"
 
-		//def log = LogFactory.getLog(logName)
+		def log = LogFactory.getLog(logName)
 
-		//artefactClass.metaClass.getLog << {-> log}
+		artefactClass.metaClass.getLog << {-> log}
 	}
 
 	def doWithSpring = {
