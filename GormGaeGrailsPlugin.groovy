@@ -14,6 +14,8 @@ import grails.util.GrailsNameUtils
 import org.codehaus.groovy.grails.validation.ConstrainedProperty
 import oshiro.gorm.gae.GaeUniqueConstraint
 
+import org.codehaus.groovy.grails.plugins.ValidationGrailsPlugin
+
 class GormGaeGrailsPlugin {
     // the plugin version
     def version = "0.0.1"
@@ -43,6 +45,11 @@ class GormGaeGrailsPlugin {
 				addLogMethod(artefact.clazz, handler)
 			}
 		}
+		def vgp = new ValidationGrailsPlugin() 
+		vgp.metaClass.application = application
+		def dm = vgp.doWithDynamicMethods
+		dm.delegate = this
+		dm(applicationContext)
 	}
 
 	def onConfigChange = {event ->
@@ -69,8 +76,6 @@ class GormGaeGrailsPlugin {
 		def type = GrailsNameUtils.getPropertyNameRepresentation(handler.type)
 		def logName = "grails.app.${type}.${artefactClass.name}".toString()
 		
-		println "add log to ${logName}"
-
 		def log = LogFactory.getLog(logName)
 
 		artefactClass.metaClass.getLog << {-> log}
@@ -161,7 +166,7 @@ class GormGaeGrailsPlugin {
 		def gaePluginSupportservice = ctx.getBean('gaePluginSupportService')
 		for(def domain in application.domainClasses) {
 			println "${domain.clazz} GORM done"
-			gaePluginSupportservice.setStaticGet(domain.clazz)
+			gaePluginSupportservice.addGormMethods(domain.clazz)
 		}
 	}
 	

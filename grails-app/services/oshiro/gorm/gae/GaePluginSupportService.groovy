@@ -8,12 +8,11 @@ import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.PreparedQuery;
-
-import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler;
-import static com.google.appengine.api.datastore.FetchOptions.Builder.*;
-
 import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.Query;
+import static com.google.appengine.api.datastore.FetchOptions.Builder.*;
+
+import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler;
 import org.apache.commons.beanutils.PropertyUtils;
 
 import java.beans.Introspector
@@ -81,7 +80,7 @@ class GaePluginSupportService {
 		}
 	}
 		
-	def setStaticGet(clazz){
+	def addGormMethods(clazz){
 		//['acme.Author' : [[className:'acme.Book', prop: '__authorId'], [className: 'acme.Owned', prop: '__ownedId']]
 		managedCascadeList.put(clazz.name, [])
 		
@@ -132,17 +131,14 @@ class GaePluginSupportService {
 				if(delegate.@"$k" == null && delegate."${fkPropName}" != null){
 					delegate.@"$k" = v.get(delegate."${fkPropName}")
 				}
-				//println "get ${k}: ${delegate.@"$k"}, fk: ${fkPropName}, class: ${v}, fk: ${delegate."${fkPropName}"}, ${k}Id: ${delegate."${k}Id"}"
 				return delegate.@"$k"
 			}
 			metaClazz."set${k[0].toUpperCase()}${k.substring(1)}Id" = { id ->
-				println "set ${fkPropName} = ${id} | ${id.class}"
 				if(id instanceof String){
 					delegate."${fkPropName}" = Long.valueOf(id)
 				}else{
 					delegate."${fkPropName}" = id
 				}
-				//println fkPropName + ' = ' + delegate."${fkPropName}" 
 			}
 			return fkPropName
 		}
@@ -203,6 +199,35 @@ class GaePluginSupportService {
 			clos()
 		}
 
+		metaClazz.static.findWhere = { Map cri ->
+			def r
+			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+			Query q = new Query(clazz.name)
+			cri.each{ k, v ->
+				q.addFilter(k, Query.FilterOperator.EQUAL, v)
+			}
+			def rs = datastore.prepare(q).asIterable()
+			for (Entity entity : rs) {
+				r = bindProps(clazz.newInstance(), entity)
+				break;
+			}
+			return r
+		}
+		
+		metaClazz.static.findAllWhere = { Map cri ->
+			def r = []
+			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+			Query q = new Query(clazz.name)
+			cri.each{ k, v ->
+				q.addFilter(k, Query.FilterOperator.EQUAL, v)
+			}
+			def rs = datastore.prepare(q).asIterable()
+			for (Entity entity : rs) {
+				r.add(bindProps(clazz.newInstance(), entity))
+			}
+			return r
+		}
+		
 		metaClazz.delete = { Map opts = [:] ->
 			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 			datastore.delete(KeyFactory.createKey(clazz.name, delegate.id))
@@ -211,18 +236,31 @@ class GaePluginSupportService {
 		
 		metaClazz.save = { Map opts = [:] ->
 			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-			
-			if(propertyNames.contains('constraints')){//TODO: tratar threads
+			def domainObj = delegate
+			def hasUniqueError = false
+			if(clazz.metaClass.properties*.name.contains('constraints')){//TODO: tratar threads
+				println "Looking for unique constraints in ${clazz.name}..."
 				//verificar unique
 				clazz.constraints.each{ k, v ->
 					if(v.getAppliedConstraint('unique')){
+						println "has unique ${k} property"
 						Query q = new Query(clazz.name)//.setKeysOnly();
-						q.addFilter(k, Query.FilterOperator.EQUAL, delegate."$k")
+						q.addFilter(k, Query.FilterOperator.EQUAL, domainObj."$k")
+						if(domainObj.id){
+							q.addFilter('id', Query.FilterOperator.NOT_EQUAL, domainObj.id)
+						}
 						if(datastore.prepare(q).countEntities(withDefaults())>0){
-							throw new RuntimeException("not unique exception $k")
+							domainObj.errors.rejectValue(k, 'default.not.unique.message', [k, clazz.name, v] as Object[], 'Unique error')
+							hasUniqueError = true
 						}
 					}
 				}
+			}else{
+				println "No constraints prop in ${clazz.name}"
+			}
+			if(hasUniqueError){// se houver erro de unique retorna
+				println "Unique error(s) found"
+				return null // por padrao retorna null
 			}
 			
 			Entity entity
@@ -232,6 +270,7 @@ class GaePluginSupportService {
 				def newKey = datastore.allocateIds(clazz.name, 1L).getStart()
 				entity = new Entity(newKey)
 				delegate.id = newKey.getId()
+				entity.setProperty('id', delegate.id)
 			}
 			
 			def keys = delegate.properties.keySet() - ['id', 'metaClass', 'class', 'errors', 'constraints', 'belongsTo', 'hasMany', 'log']
