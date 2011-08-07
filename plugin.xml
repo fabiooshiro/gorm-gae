@@ -8,6 +8,7 @@
     <resource>UrlMappings</resource>
     <resource>TestController</resource>
     <resource>org.grails.appengine.AppEngineReloadController</resource>
+    <resource>oshiro.gorm.gae.GaePluginSupportService</resource>
   </resources>
   <dependencies />
   <behavior />

@@ -67,11 +67,11 @@ class GaePluginSupportService {
 	}
 	
 	def remove( datastore, ownerClassName, ownerId){
-		//println "ownerClassName = ${ownerClassName} ownerId = ${ownerId}"
+		println "ownerClassName = ${ownerClassName} ownerId = ${ownerId}"
 		managedCascadeList.get(ownerClassName).each{ owned -> // Cascade: apagar todos os que belongsTo esta classe
-			//println "owned = ${owned}"
-			Query q = new Query(owned.className)//.setKeysOnly();
-			q.addFilter(owned.prop.substring(2), Query.FilterOperator.EQUAL, ownerId) //misterio
+			println "owned = ${owned}"
+			Query q = new Query(owned.className)
+			q.addFilter(owned.prop, Query.FilterOperator.EQUAL, ownerId) //misterio
 			PreparedQuery pq = datastore.prepare(q)
 			for (Entity result : pq.asIterable()) {
 				datastore.delete(result.getKey())
@@ -81,11 +81,13 @@ class GaePluginSupportService {
 	}
 		
 	def addGormMethods(clazz){
-		//['acme.Author' : [[className:'acme.Book', prop: '__authorId'], [className: 'acme.Owned', prop: '__ownedId']]
+		/*
+		 * ['acme.Author' : [[className:'acme.Book', prop: 'authorId'], [className: 'acme.Owned', prop: 'ownedId']]
+		 */
 		managedCascadeList.put(clazz.name, [])
 		
 		def metaClazz = clazz.metaClass
-		def propertyNames = metaClass.properties*.name
+		def propertyNames = metaClazz.properties*.name
 		def relationsPropCreated = []		
 		metaClass.id = null
 		
@@ -140,7 +142,7 @@ class GaePluginSupportService {
 					delegate."${fkPropName}" = id
 				}
 			}
-			return fkPropName
+			return k + 'Id'
 		}
 		
 		println 'chk belongs to'
@@ -150,6 +152,7 @@ class GaePluginSupportService {
 				relationsPropCreated.add(k)
 				def fkPropName = createFkProp(k, v)
 				managedCascadeList.get(v.name, []).add([className: clazz.name, prop: fkPropName])
+				println managedCascadeList
 			}
 		}
 		
@@ -238,7 +241,7 @@ class GaePluginSupportService {
 			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 			def domainObj = delegate
 			def hasUniqueError = false
-			if(clazz.metaClass.properties*.name.contains('constraints')){//TODO: tratar threads
+			if(propertyNames.contains('constraints')){//TODO: tratar threads
 				println "Looking for unique constraints in ${clazz.name}..."
 				//verificar unique
 				clazz.constraints.each{ k, v ->
