@@ -1,9 +1,9 @@
 <grails>
   <resources>
-    <resource>oshiro.gorm.gae.GaePluginSupportService</resource>
+    <resource>UrlMappings</resource>
     <resource>org.grails.appengine.AppEngineReloadController</resource>
     <resource>TestController</resource>
-    <resource>UrlMappings</resource>
+    <resource>oshiro.gorm.gae.GaePluginSupportService</resource>
   </resources>
   <plugins>
     <plugin>GormGaeGrailsPlugin</plugin>

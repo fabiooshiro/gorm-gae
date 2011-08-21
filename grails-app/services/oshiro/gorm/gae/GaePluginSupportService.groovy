@@ -177,6 +177,13 @@ class GaePluginSupportService {
 			}else{
 				rs = datastore.prepare(query).asIterable()
 			}
+			if(p?.sort){
+				if(p?.order == 'desc'){
+					query.addSort(p.sort, Query.SortDirection.DESCENDING)
+				}else{
+					query.addSort(p.sort, Query.SortDirection.ASCENDING)
+				}
+			}
 			for (Entity entity : rs) {
 				authorInstanceList.add(bindProps(clazz.newInstance(), entity))
 				total ++
