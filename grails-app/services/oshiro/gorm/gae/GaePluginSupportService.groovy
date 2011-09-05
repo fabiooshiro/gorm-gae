@@ -84,7 +84,7 @@ class GaePluginSupportService {
 		/*
 		 * ['acme.Author' : [[className:'acme.Book', prop: 'authorId'], [className: 'acme.Owned', prop: 'ownedId']]
 		 */
-		managedCascadeList.put(clazz.name, [])
+		if(!managedCascadeList.containsKey(clazz.name)) managedCascadeList.put(clazz.name, [])
 		
 		def metaClazz = clazz.metaClass
 		def propertyNames = metaClazz.properties*.name
